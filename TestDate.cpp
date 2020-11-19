@@ -1,68 +1,135 @@
+#include <iostream>
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
-#include <iostream>
 
 #include "Date.h"
 #include "Macros.h"
 
-void test1() {
-  int seed = std::time(NULL) ;
-  std::cout << "Random seed: " << seed << std::endl;
-  int invalid_count = 0;
-  int error_count = 0;
-  while (invalid_count < 1000) {
-    unsigned y, m ,d;
-    y = std::rand() % 400 + 1850;
-    m = std::rand() % 12 + 1;
-    d = std::rand() % 32 + 1;
-    if (!minirisk::Date::is_valid_date(y, m ,d)) {
-      invalid_count += 1;
-      try {
-        minirisk::Date date(y, m, d);
-      } catch (...) {
-        error_count += 1; 
-      }
+
+//generate 1000 invalid dates and test whether structor Date can check them successfully
+void test1()
+{
+    unsigned invalid_number = 0;
+    unsigned error_number = 0;
+    std::ofstream f("TestDate_test1.txt");
+    while (invalid_number < 1000) {
+        unsigned y, m, d;
+        y = std::rand() % 500 + 1800;
+        m = std::rand() % 12 + 1;
+        d = std::rand() % 32 + 1;
+        f << y << "/" << m << "/" << d << " ";
+        if (!minirisk::Date::valid_test(y, m, d)) 
+        {
+            invalid_number += 1;
+            try 
+            {
+                minirisk::Date date(y, m, d);
+            }
+            catch (...) 
+            {
+                error_number += 1;
+            }
+        }
     }
-  }
-  MYASSERT(invalid_count == 1000 && error_count == 1000, "Error");
+
+    try
+    {
+        invalid_number == 1000 && error_number == 1000;
+    }
+    catch (...)
+    {
+        std::cout << "test1 fail" << std::endl;
+    }
 }
 
-void test2() {
-  std::ifstream mfile("../data/all_dates.txt");
-  if (mfile.is_open()) {
-    unsigned y_i, m_i, d_i;
-    unsigned y_o, m_o, d_o;
-    while (mfile.good()) {
-      mfile >> y_i >> m_i >> d_i;
-      minirisk::Date date(y_i, m_i, d_i);
-      date.to_y_m_d(&y_o, &m_o, &d_o);
-      MYASSERT(
-          d_i == d_o && m_i == m_o && y_i == y_o, 
-          "Conversion error " << y_i << " " << m_i << " " << d_i << " vs " 
-          << y_o << " " << m_o << " " << d_o);
-    } 
-    mfile.close();
-  } 
+
+//Verify that converting a date in calendar format (day, month, year) to serial format
+
+void test2()
+{
+    unsigned error_number = 0;
+    std::ofstream f("TestDate_test2.txt");
+    for (unsigned y1 = minirisk::Date::first_year; y1 < minirisk::Date::last_year; ++y1)
+        for (unsigned m1=1;m1<=12;++m1)
+            for (unsigned d1 = 1; d1 <= (minirisk::Date::is_leap_year(y1) ? minirisk::Date::leap_days_in_month[m1-1] : minirisk::Date::days_in_month[m1-1]);++d1)
+            {
+                unsigned y2, m2, d2;
+                minirisk::Date date(y1,m1,d1);
+                date.year_month_day(date, &y2, &m2, &d2);
+                f << d1 << "-" << m1 << "-" << y1 << " ";
+                f << d2 << "-" << m2 << "-" << y2 << "/n";
+                if (y1 != y2 || m1 != m2 || d1 != d2)
+                {
+                    error_number += 1;
+                }
+                    
+
+            }
+    
+    try
+    {
+        error_number == 0;
+    }
+    catch (...)
+    {
+        std::cout << "test2 fail" << std::endl;
+    }
 }
 
-void test3() {
-  std::ifstream mfile("all_dates.txt");
-  if (mfile.is_open()) {
-    unsigned y, m, d;
-    int count = 0;
-    minirisk::Date prev_date;
-    while (mfile >> y >> m >> d) {
-      minirisk::Date date(y, m, d);
-      if (count > 0)
-        MYASSERT(
-            date.serial() - prev_date.serial() == 1, 
-            "Wrong " << date.serial() << " " << prev_date.serial());
-      ++count;
-      prev_date = date;
-    } 
-    mfile.close();
-  } 
+void test3()
+{
+    std::ofstream f("TestDate_test3.txt");
+    for (unsigned y1 = minirisk::Date::first_year; y1 < minirisk::Date::last_year-1; ++y1)
+        for (unsigned m1 = 1; m1<=12; ++m1)
+        {
+            unsigned y2, m2, d2;
+            unsigned d1 = (minirisk::Date::is_leap_year(y1) ? minirisk::Date::leap_days_in_month[m1 - 1] : minirisk::Date::days_in_month[m1 - 1]);
+            minirisk::Date date1(y1, m1, d1);
+            if (m1 == 12)
+            {
+                y2 = y1 + 1;
+                m2 = 1;
+                d2 = 1;
+            }
+            else
+            {
+                y2 = y1;
+                m2 = m1 + 1;
+                d2 = 1;
+            }
+            minirisk::Date date2(y2, m2, d2);
+            f << y1 << "/" << m1 << "/" << d1 << " ";
+            f << y2 << "/" << m2 << "/" << d2 << "/n";
+            try
+            {
+                date2 - date1 == 1;
+            }
+            catch (...)
+            {
+                std::cout << "test3 fail" << std::endl;
+            }
+        }
+
+    unsigned y1 = minirisk::Date::last_year - 1;
+    for (unsigned m1 = 1; m1 <12; ++m1)
+    {
+        unsigned d2 = 1;
+        unsigned d1 = (minirisk::Date::is_leap_year(y1) ? minirisk::Date::leap_days_in_month[m1 - 1] : minirisk::Date::days_in_month[m1 - 1]);
+        minirisk::Date date1(y1, m1, d1);
+        minirisk::Date date2(y1, m1+1, d2);
+        f << d1 << "-" << m1 << "-" << y1 << " ";
+        f << d2 << "-" << m1 + 1 << "-" << y1 << "/n";
+        try 
+        {
+            date2 - date1 == 1;
+        }
+        catch (...) 
+        {
+            std::cout << "test3 fail" << std::endl;
+        }
+    }
+
 }
 
 int main()
