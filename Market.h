@@ -88,8 +88,8 @@ private:
     std::set<std::string> m_fetched_regex;
 
     // fx spot, assuming number of fx ccy is fewer than 200
-    std::map<string, u_int32_t> m_fx_ccy_idx;
-    double m_fx_spot_rate[200][200];
+    std::map<string, unsigned> m_fx_ccy_idx;
+    double m_fx_spot_rate[300][300];
 };
 
 } // namespace minirisk
